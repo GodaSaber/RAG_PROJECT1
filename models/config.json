@@ -1,0 +1,1 @@
+{"vocab_size": 305, "embed_dim": 64, "hidden_dim": 128, "num_classes": 3, "max_len": 50}
