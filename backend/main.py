@@ -60,95 +60,9 @@ classifier.eval()
 print("✅ Classifier loaded!")
 
 
-# =========================
-# Keywords for classification
-# =========================
-EDUCATIONAL_KEYWORDS = [
-    # Programming
-    "oop", "programming", "code", "class", "function", "variable",
-    "loop", "array", "algorithm", "python", "java", "html", "css",
-    "api", "database", "sql", "machine learning", "neural",
-    "inheritance", "polymorphism", "encapsulation", "abstraction",
-    "pillar", "compile", "debug", "software", "web scraping",
-    "method", "object", "constructor", "interface", "exception",
-    "data structure", "stack", "queue", "linked list", "tree",
-    "sort", "search", "recursion", "big o", "complexity",
-    # Compiler & Theory
-    "lexical", "syntax", "parsing", "compiler", "token",
-    "tokenization", "grammar", "semantic", "automata",
-    "regular expression", "finite state", "context free",
-    "scanner", "lexer", "parser", "ast",
-    # CS Topics
-    "analysis", "computer science", "operating system", "network",
-    "thread", "process", "memory", "cpu", "binary",
-    "encryption", "decryption", "hash", "cloud",
-    # AI / ML
-    "deep learning", "classification", "regression", "model",
-    "training", "neural network", "nlp", "natural language",
-    "transformer", "embedding", "vector",
-    # General Academic
-    "explain", "what is", "how does", "define",
-    "concept", "theory", "principle", "example",
-    "lecture", "chapter", "slide", "textbook",
-    # Arabic
-    "برمجة", "كائن", "دالة", "متغير", "خوارزمية", "وراثة",
-    "تعدد الأشكال", "تغليف", "تجريد", "مصفوفة", "بايثون", "جافا",
-    "شبكات عصبية", "تعلم آلي", "ذكاء اصطناعي",
-    "مترجم", "تحليل", "نحوي", "معجمي", "دلالي",
-    "اشرح", "ما هو", "ما هي", "كيف",
-]
-
-LEGAL_KEYWORDS = [
-    "law", "legal", "court", "judge", "penalty", "crime",
-    "criminal", "article", "constitution", "rights", "accused",
-    "lawsuit", "attorney", "lawyer", "prison", "sentence",
-    "penal", "civil", "prosecution", "defendant", "verdict",
-    "testimony", "witness", "evidence", "bail", "appeal",
-    "قانون", "محكمة", "قاضي", "عقوبة", "جريمة", "جنائي",
-    "مادة", "دستور", "حقوق", "متهم", "دعوى", "محامي",
-    "سجن", "حكم", "استئناف", "شهود", "أدلة", "نيابة",
-    "جناية", "جنحة", "مخالفة", "إجراءات",
-]
-
-
 def classify_text(text: str):
-    """Classify text using keywords + neural network"""
-    q = text.lower()
 
-    # Step 1: Check each word separately (not just substring)
-    words = set(q.replace("?", "").replace(".", "").replace(",", "").split())
-
-    edu_score = 0
-    legal_score = 0
-
-    for kw in EDUCATIONAL_KEYWORDS:
-        kw_words = set(kw.lower().split())
-        # Check if keyword words exist in question words
-        if kw_words.issubset(words):
-            edu_score += len(kw_words) * 2  # Higher weight for exact match
-        elif kw.lower() in q:
-            edu_score += 1  # Lower weight for substring match
-
-    for kw in LEGAL_KEYWORDS:
-        kw_words = set(kw.lower().split())
-        if kw_words.issubset(words):
-            legal_score += len(kw_words) * 2
-        elif kw.lower() in q:
-            legal_score += 1
-
-    print(f"  📊 Keyword scores — Educational: {edu_score}, Legal: {legal_score}")
-
-    # Keywords found → use them
-    if edu_score > legal_score and edu_score > 0:
-        return "educational", 0.95
-    if legal_score > edu_score and legal_score > 0:
-        return "legal", 0.95
-    if edu_score > 0 and legal_score == 0:
-        return "educational", 0.90
-    if legal_score > 0 and edu_score == 0:
-        return "legal", 0.90
-
-    # Step 2: Neural network (only if NO keywords matched)
+    # Neural network)
     with torch.no_grad():
         encoded = torch.tensor(
             [tokenizer.encode(text, config["max_len"])], dtype=torch.long
@@ -161,6 +75,7 @@ def classify_text(text: str):
     print(f"  🧠 Neural Network → {CATEGORIES[predicted]} ({confidence*100:.1f}%)")
 
     return CATEGORIES[predicted], confidence
+
 
 def classify_document(docs):
     """Classify a document by analyzing its content"""
@@ -180,10 +95,7 @@ embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
 
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=150
-)
+splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
 
 
 # =========================
@@ -204,8 +116,7 @@ class IndexManager:
             if os.path.exists(index_path):
                 try:
                     db = FAISS.load_local(
-                        index_path, embeddings,
-                        allow_dangerous_deserialization=True
+                        index_path, embeddings, allow_dangerous_deserialization=True
                     )
                     self.indexes[category] = db
                     print(f"  ✅ Loaded index: {category}")
@@ -341,7 +252,7 @@ def smart_search(question: str):
     # Step 2: Low confidence → search ALL but prefer classified category
     else:
         print(f"🔍 Low confidence, searching all indexes")
-        
+
         # Search in classified category first
         category_docs = []
         if category in index_manager.indexes:
@@ -381,6 +292,8 @@ def smart_search(question: str):
         actual_category = Counter(doc_categories).most_common(1)[0][0]
 
     return docs, actual_category, confidence
+
+
 # =========================
 # Helper: extract sources
 # =========================
@@ -468,9 +381,7 @@ def query_rag(query: Query):
     context = "\n".join([doc.page_content for doc in docs])
 
     messages = prompt.format_messages(
-        input=query.text,
-        context=context,
-        chat_history=history
+        input=query.text, context=context, chat_history=history
     )
     response = llm.invoke(messages)
     answer = response.content
@@ -493,6 +404,7 @@ def query_rag(query: Query):
         "sources": sources,
     }
 
+
 # ---------- 2. Streaming Query ----------
 @app.post("/query/stream")
 async def query_rag_stream(query: Query):
@@ -506,9 +418,7 @@ async def query_rag_stream(query: Query):
         context = "\n".join([doc.page_content for doc in docs])
 
         messages = prompt.format_messages(
-            input=query.text,
-            context=context,
-            chat_history=history
+            input=query.text, context=context, chat_history=history
         )
 
         full_response = ""
@@ -561,11 +471,13 @@ async def upload_files(files: list[UploadFile] = File(...)):
             docs = loader.load()
 
             if not docs:
-                results.append({
-                    "file": file.filename,
-                    "status": "failed",
-                    "error": "No content found"
-                })
+                results.append(
+                    {
+                        "file": file.filename,
+                        "status": "failed",
+                        "error": "No content found",
+                    }
+                )
                 continue
 
             # Auto-classify the document content
@@ -574,22 +486,20 @@ async def upload_files(files: list[UploadFile] = File(...)):
             # Add to the correct index
             num_chunks = index_manager.add_documents(docs, category)
 
-            results.append({
-                "file": file.filename,
-                "category": category,
-                "chunks": num_chunks,
-                "status": "success"
-            })
+            results.append(
+                {
+                    "file": file.filename,
+                    "category": category,
+                    "chunks": num_chunks,
+                    "status": "success",
+                }
+            )
 
             print(f"  ✅ {file.filename} → {category} ({num_chunks} chunks)")
 
         except Exception as e:
             print(f"  ❌ Error: {e}")
-            results.append({
-                "file": file.filename,
-                "status": "failed",
-                "error": str(e)
-            })
+            results.append({"file": file.filename, "status": "failed", "error": str(e)})
 
         finally:
             os.unlink(tmp_path)
@@ -660,11 +570,13 @@ def get_sessions():
                 if isinstance(msg, HumanMessage):
                     title = msg.content[:50] + ("..." if len(msg.content) > 50 else "")
                     break
-            sessions.append({
-                "session_id": sid,
-                "title": title,
-                "messages_count": len(history),
-            })
+            sessions.append(
+                {
+                    "session_id": sid,
+                    "title": title,
+                    "messages_count": len(history),
+                }
+            )
     sessions.reverse()
     return {"sessions": sessions}
 
